@@ -3,6 +3,8 @@ from django.conf import settings
 from users.models import MyUser
 from django.shortcuts import get_object_or_404
 from django.db import IntegrityError
+from django.utils.translation import gettext_lazy as _
+from rest_framework.authtoken.models import Token
 import uuid
 
 class RoomManager(models.Manager):
@@ -71,11 +73,43 @@ class Membership(models.Model):
             models.UniqueConstraint(fields=['room', 'member'], name='unique membership')
         ]
 
+class ChatOwnerManager(models.Manager):
+    def create(self, name):
+        chatowner = ChatOwner(name=name)
+        chatowner.save()
+        chatownertoken = ChatOwnerToken(user=chatowner)
+        chatownertoken.save()
+        return chatowner
+
+class ChatOwner(models.Model):
+    name = models.CharField(max_length=200, unique=True, blank=False)
+
+    objects = ChatOwnerManager()
+
+    def __str__(self):
+        return self.name
+
+class ChatOwnerToken(Token):
+    user = models.OneToOneField(ChatOwner, related_name='auth_token', on_delete=models.CASCADE,
+                                verbose_name=_("User"))
+
+    def __str__(self):
+        return self.key
+
+class ChatManager(models.Manager):
+    def create(self, room, chatowner_name):
+        chatowner = ChatOwner.objects.create(name=chatowner_name)
+        chat = Chat(owner=chatowner, room=room)
+        chat.save()
+        return chat
 
 class Chat(models.Model):
+    owner = models.OneToOneField(ChatOwner, on_delete=models.SET_NULL, null=True)
     room = models.ForeignKey(Room, on_delete=models.SET_NULL, related_name='chats', null=True)
     chat_uuid = models.UUIDField(unique=True, default=uuid.uuid4)
     start_time = models.DateTimeField(auto_now_add=True)
+
+    objects = ChatManager()
 
 class Message(models.Model):
     text = models.CharField(max_length=200, blank=True)
