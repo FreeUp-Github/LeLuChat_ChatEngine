@@ -76,3 +76,12 @@ class Chat(models.Model):
     room = models.ForeignKey(Room, on_delete=models.SET_NULL, related_name='chats', null=True)
     chat_uuid = models.UUIDField(unique=True, default=uuid.uuid4)
     start_time = models.DateTimeField(auto_now_add=True)
+
+class Message(models.Model):
+    text = models.CharField(max_length=200, blank=True)
+    attachment = models.FileField(blank=True)
+    chat = models.ForeignKey(Chat, on_delete=models.CASCADE, related_name='messages')
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ('-timestamp',)
