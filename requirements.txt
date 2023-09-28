@@ -3,3 +3,7 @@ psycopg2>=2.8
 djangorestframework
 pygments
 djangorestframework-simplejwt
+daphne
+channels[daphne]
+channels_redis
+django-cors-headers
