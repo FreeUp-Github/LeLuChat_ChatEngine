@@ -40,7 +40,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'rest_framework.authtoken',
     'rest_framework',
     "corsheaders",
     'users',
@@ -162,3 +161,5 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_PROFILE_MODULE = 'users.MyUser'
 
 AUTH_USER_MODEL = 'users.MyUser'
+
+DEFAULT_PREFIX_CHATOWNER_NAME = 'کاربر'

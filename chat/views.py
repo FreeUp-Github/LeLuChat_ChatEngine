@@ -12,6 +12,7 @@ from .serializers import ChatListSerializer, ChatDetailSerializer
 from rest_framework import permissions
 from django.db.models import Q
 from django.shortcuts import redirect, reverse
+from django.conf import settings
 from .permissions import IsReadOnlyMemberOrAdminMember, IsMemberChatRoom
 
 
@@ -87,10 +88,13 @@ class ChatList(APIView):
 
     def post(self, request, uid, format=None):
         room = get_object_or_404(Room, room_uuid=uid)
-        chat = Chat(room=room)
-        chat.save()
-        serializer = ChatListSerializer(chat)
-        return Response(serializer.data)
+        serializer = ChatListSerializer(data=request.data, context={'not_token': False})
+        if serializer.is_valid():
+            chat_num = room.chats.count()
+            chatowner_name = settings.DEFAULT_PREFIX_CHATOWNER_NAME + str(chat_num + 1)
+            serializer.save(room=room, chatowner_name=chatowner_name)
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class ChatDetail(APIView):
     permission_classes = [permissions.IsAuthenticated, IsMemberChatRoom]
