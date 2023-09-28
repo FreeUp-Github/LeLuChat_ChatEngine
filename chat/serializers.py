@@ -1,4 +1,4 @@
-from .models import Room, Membership, Chat
+from .models import Room, Membership, Chat, Message
 from users.models import MyUser
 from users.serializers import UserSerializer
 from rest_framework import serializers
@@ -59,7 +59,17 @@ class RoomUpdateSerializer(serializers.ModelSerializer):
                                    members=validated_data['members'])
 
 class ChatListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Chat
+        exclude = ('room', 'id')
 
+class MessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
+        exclude = ('chat', 'id')
+
+class ChatDetailSerializer(serializers.ModelSerializer):
+    messages = MessageSerializer(many=True)
     class Meta:
         model = Chat
         exclude = ('room', 'id')
