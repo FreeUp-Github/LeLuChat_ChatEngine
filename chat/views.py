@@ -8,11 +8,11 @@ from django.shortcuts import get_object_or_404, get_list_or_404
 from users.models import MyUser as User
 from .models import Room, Chat
 from .serializers import RoomCreateSerializer, RoomSerializer, RoomUpdateMembershipSerializer, RoomUpdateSerializer
-from .serializers import ChatListSerializer
+from .serializers import ChatListSerializer, ChatDetailSerializer
 from rest_framework import permissions
 from django.db.models import Q
 from django.shortcuts import redirect, reverse
-from .permissions import IsReadOnlyMemberOrAdminMember
+from .permissions import IsReadOnlyMemberOrAdminMember, IsMemberChatRoom
 
 
 class RoomList(APIView):
@@ -90,4 +90,12 @@ class ChatList(APIView):
         chat = Chat(room=room)
         chat.save()
         serializer = ChatListSerializer(chat)
+        return Response(serializer.data)
+
+class ChatDetail(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsMemberChatRoom]
+    def get(self, request, uid, format=None):
+        chat = get_object_or_404(Chat, chat_uuid=uid)
+        self.check_object_permissions(self.request, chat)
+        serializer = ChatDetailSerializer(chat)
         return Response(serializer.data)
