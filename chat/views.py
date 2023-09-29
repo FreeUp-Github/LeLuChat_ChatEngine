@@ -13,7 +13,9 @@ from rest_framework import permissions
 from django.db.models import Q
 from django.shortcuts import redirect, reverse
 from django.conf import settings
-from .permissions import IsReadOnlyMemberOrAdminMember, IsMemberChatRoom
+from .permissions import IsReadOnlyMemberOrAdminMember, IsMemberChatRoomOrChatowner, IsGetAuthenticatedOrPost
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from .authentication_class import ChatownerTokenAuthentication
 
 
 class RoomList(APIView):
@@ -78,7 +80,7 @@ class RoomMembership(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 class ChatList(APIView):
-    permission_classes = [permissions.IsAuthenticated, IsReadOnlyMemberOrAdminMember]
+    permission_classes = [IsGetAuthenticatedOrPost, IsReadOnlyMemberOrAdminMember]
 
     def get(self, request, uid, format=None):
         room = get_object_or_404(Room, room_uuid=uid)
@@ -97,7 +99,8 @@ class ChatList(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class ChatDetail(APIView):
-    permission_classes = [permissions.IsAuthenticated, IsMemberChatRoom]
+    authentication_classes = [JWTAuthentication, ChatownerTokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsMemberChatRoomOrChatowner]
     def get(self, request, uid, format=None):
         chat = get_object_or_404(Chat, chat_uuid=uid)
         self.check_object_permissions(self.request, chat)
