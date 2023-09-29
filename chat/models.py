@@ -5,6 +5,8 @@ from django.shortcuts import get_object_or_404
 from django.db import IntegrityError
 from django.utils.translation import gettext_lazy as _
 from rest_framework.authtoken.models import Token
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.fields import GenericForeignKey
 import uuid
 
 class RoomManager(models.Manager):
@@ -84,6 +86,10 @@ class ChatOwnerManager(models.Manager):
 class ChatOwner(models.Model):
     name = models.CharField(max_length=200, unique=True, blank=False)
 
+    @property
+    def is_authenticated(self):
+        return True
+
     objects = ChatOwnerManager()
 
     def __str__(self):
@@ -112,6 +118,9 @@ class Chat(models.Model):
     objects = ChatManager()
 
 class Message(models.Model):
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    sender_object = GenericForeignKey("content_type", "object_id")
     text = models.CharField(max_length=200, blank=True)
     attachment = models.FileField(blank=True)
     chat = models.ForeignKey(Chat, on_delete=models.CASCADE, related_name='messages')
