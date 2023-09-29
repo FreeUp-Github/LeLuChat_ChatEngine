@@ -82,10 +82,20 @@ class ChatListSerializer(serializers.ModelSerializer):
     def get_chat_owner(self, obj):
         return ChatOwnerSerializer(obj.owner, context={'not_token': self.context.get('not_token', True)}).data
 
+class SenderObjectRelatedField(serializers.RelatedField):
+    def to_representation(self, value):
+        if isinstance(value, ChatOwner):
+            return value.name
+        elif isinstance(value, MyUser):
+            return value.email
+        raise Exception('Unexpected type of tagged object')
+
 class MessageSerializer(serializers.ModelSerializer):
+    sender = SenderObjectRelatedField(read_only=True, source='sender_object')
     class Meta:
         model = Message
-        exclude = ('chat', 'id')
+        fields = ('text', 'attachment', 'timestamp', 'sender')
+        read_only_fields = ('text', 'attachment', 'timestamp', 'sender')
 
 class ChatDetailSerializer(serializers.ModelSerializer):
     messages = MessageSerializer(many=True, read_only=True)
