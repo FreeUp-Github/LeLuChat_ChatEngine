@@ -85,6 +85,7 @@ class ChatOwnerManager(models.Manager):
 
 class ChatOwner(models.Model):
     name = models.CharField(max_length=200, unique=True, blank=False)
+    is_active = models.BooleanField(default=True)
 
     @property
     def is_authenticated(self):
