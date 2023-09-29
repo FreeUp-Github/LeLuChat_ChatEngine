@@ -2,34 +2,39 @@ import base64
 import json
 import secrets
 from datetime import datetime
-
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
 from django.core.files.base import ContentFile
-
 from users.models import MyUser
 from .models import Message, Chat, Room
 from .serializers import MessageSerializer
+from .ws_permissions import is_authorized
 
 
 class ChatConsumer(WebsocketConsumer):
     def __init__(self):
-        self.room_uuid = None
+        self.room = None
         self.chat_group_name = None
         self.chat_uuid = None
         self.chat = None
+        self.user = None
         super().__init__()
 
     def connect(self):
-        self.accept()
-        self.room_uuid = self.scope["url_route"]["kwargs"]["uid"]
+        self.user = self.scope['user']
         close = False
-        try:
-            room = Room.objects.get(room_uuid=self.room_uuid)
-            message = "Room is founded successfully!"
-        except Room.DoesNotExist:
-            message = "Room is not founded!"
+        if self.user.is_authenticated:
+            room_uuid = self.scope["url_route"]["kwargs"]["uid"]
+            try:
+                self.room = Room.objects.get(room_uuid=room_uuid)
+                message = "Room is founded successfully!"
+            except Room.DoesNotExist:
+                message = "Room is not founded!"
+                close = True
+        else:
+            message = "User is not authenticated!"
             close = True
+        self.accept()
         self.send(text_data=json.dumps({
             'type': 'room_status',
             'message': message
@@ -53,11 +58,16 @@ class ChatConsumer(WebsocketConsumer):
             self.chat_uuid = text_data_json['uuid']
             try:
                 self.chat = Chat.objects.get(chat_uuid=self.chat_uuid)
-                message = "Join to the chat successfully!"
-                self.chat_group_name = f"chat_{self.chat_uuid}"
-                async_to_sync(self.channel_layer.group_add)(
-                    self.chat_group_name, self.channel_name
-                )
+                if is_authorized(room=self.room, user=self.user, chat=self.chat,
+                                 authorization_type=self.scope['authorization_type']):
+                    message = "Join to the chat successfully!"
+                    self.chat_group_name = f"chat_{self.chat_uuid}"
+                    async_to_sync(self.channel_layer.group_add)(
+                        self.chat_group_name, self.channel_name
+                    )
+                else:
+                    close = True
+                    message = "Permission denied to this chat!"
             except Chat.DoesNotExist:
                 close = True
                 message = "Chat is not founded!"
@@ -82,7 +92,7 @@ class ChatConsumer(WebsocketConsumer):
         else:
             self.send(text_data=json.dumps({
                 'type': 'chat_type',
-                'message': "Chat type not supported!"
+                'message': "Message type not supported!"
             }))
 
     # Receive message from room group
@@ -105,11 +115,13 @@ class ChatConsumer(WebsocketConsumer):
                 attachment=file_data,
                 text=message,
                 chat=self.chat,
+                sender_object=self.user
             )
         else:
             _message = Message.objects.create(
                 text=message,
                 chat=self.chat,
+                sender_object=self.user
             )
         serializer = MessageSerializer(instance=_message)
         # Send message to WebSocket
