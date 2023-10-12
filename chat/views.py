@@ -36,8 +36,8 @@ class RoomList(APIView):
 class RoomDetail(APIView):
     permission_classes = [permissions.IsAuthenticated, IsReadOnlyMemberOrAdminMember]
 
-    def get(self, request, id, format=None):
-        room = get_object_or_404(Room, room_uuid=id)
+    def get(self, request, uid, format=None):
+        room = get_object_or_404(Room, room_uuid=uid)
         self.check_object_permissions(self.request, room)
         serializer = RoomSerializer(room)
         return Response(serializer.data)
