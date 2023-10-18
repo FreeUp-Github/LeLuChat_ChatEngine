@@ -9,6 +9,7 @@ from users.models import MyUser
 from .models import Message, Chat, Room
 from .serializers import MessageSerializer
 from .ws_permissions import is_authorized
+from .ws_authentication import TokenAuthentication
 
 
 class ChatConsumer(WebsocketConsumer):
@@ -18,21 +19,17 @@ class ChatConsumer(WebsocketConsumer):
         self.chat_uuid = None
         self.chat = None
         self.user = None
+        self.authorization_type = None
         super().__init__()
 
     def connect(self):
-        self.user = self.scope['user']
         close = False
-        if self.user.is_authenticated:
-            room_uuid = self.scope["url_route"]["kwargs"]["uid"]
-            try:
-                self.room = Room.objects.get(room_uuid=room_uuid)
-                message = "Room is founded successfully!"
-            except Room.DoesNotExist:
-                message = "Room is not founded!"
-                close = True
-        else:
-            message = "User is not authenticated!"
+        room_uuid = self.scope["url_route"]["kwargs"]["uid"]
+        try:
+            self.room = Room.objects.get(room_uuid=room_uuid)
+            message = "Room is founded successfully!"
+        except Room.DoesNotExist:
+            message = "Room is not founded!"
             close = True
         self.accept()
         self.send(text_data=json.dumps({
@@ -51,48 +48,66 @@ class ChatConsumer(WebsocketConsumer):
 
     # Receive message from WebSocket
     def receive(self, text_data=None, bytes_data=None):
-        # parse the json data into dictionary object
         text_data_json = json.loads(text_data)
         close = False
-        if text_data_json["type"] == "chat_join":
-            self.chat_uuid = text_data_json['uuid']
-            try:
-                self.chat = Chat.objects.get(chat_uuid=self.chat_uuid)
-                if is_authorized(room=self.room, user=self.user, chat=self.chat,
-                                 authorization_type=self.scope['authorization_type']):
-                    message = "Join to the chat successfully!"
-                    self.chat_group_name = f"chat_{self.chat_uuid}"
-                    async_to_sync(self.channel_layer.group_add)(
-                        self.chat_group_name, self.channel_name
-                    )
-                else:
-                    close = True
-                    message = "Permission denied to this chat!"
-            except Chat.DoesNotExist:
+        if text_data_json["type"].lower() == "authorization":
+            self.user, self.authorization_type = TokenAuthentication.authenticate(text_data_json["token"])
+            if self.user.is_authenticated:
+                message = "Authentication is successful"
+            else:
+                message = "Authentication is not successful"
                 close = True
-                message = "Chat is not founded!"
             self.send(text_data=json.dumps({
-                'type': 'chat_join',
+                'type': text_data_json["type"],
                 'message': message
             }))
             if close:
                 self.close()
-        elif self.chat_group_name and text_data_json["type"] == "chat_message":
-            # Send message to room group
-            return_dict = {**text_data_json}
-            async_to_sync(self.channel_layer.group_send)(
-                self.chat_group_name,
-                return_dict,
-            )
-        elif not self.chat_group_name:
-            self.send(text_data=json.dumps({
-                'type': 'chat_join',
-                'message': "You are not join to any chat!",
-            }))
+        elif self.user and self.user.is_authenticated:
+            if text_data_json["type"] == "chat_join":
+                self.chat_uuid = text_data_json['uuid']
+                try:
+                    self.chat = Chat.objects.get(chat_uuid=self.chat_uuid)
+                    if is_authorized(room=self.room, user=self.user, chat=self.chat,
+                                     authorization_type=self.authorization_type):
+                        message = "Join to the chat successfully!"
+                        self.chat_group_name = f"chat_{self.chat_uuid}"
+                        async_to_sync(self.channel_layer.group_add)(
+                            self.chat_group_name, self.channel_name
+                        )
+                    else:
+                        close = True
+                        message = "Permission denied to this chat!"
+                except Chat.DoesNotExist:
+                    close = True
+                    message = "Chat is not founded!"
+                self.send(text_data=json.dumps({
+                    'type': 'chat_join',
+                    'message': message
+                }))
+                if close:
+                    self.close()
+            elif self.chat_group_name and text_data_json["type"] == "chat_message":
+                # Send message to room group
+                return_dict = {**text_data_json}
+                async_to_sync(self.channel_layer.group_send)(
+                    self.chat_group_name,
+                    return_dict,
+                )
+            elif not self.chat_group_name and text_data_json["type"] == "chat_message":
+                self.send(text_data=json.dumps({
+                    'type': 'chat_join',
+                    'message': "You are not join to any chat!",
+                }))
+            else:
+                self.send(text_data=json.dumps({
+                    'type': 'chat_type',
+                    'message': "Message type not supported!"
+                }))
         else:
             self.send(text_data=json.dumps({
-                'type': 'chat_type',
-                'message': "Message type not supported!"
+                'type': 'authorization',
+                'message': "You are not authenticated"
             }))
 
     # Receive message from room group
