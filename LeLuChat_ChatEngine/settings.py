@@ -42,8 +42,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     "corsheaders",
-    'users',
-    'chat'
+    'users.apps.UsersConfig',
+    'chat',
+    'django_rest_passwordreset'
 ]
 
 ASGI_APPLICATION = "LeLuChat_ChatEngine.asgi.application"
@@ -163,3 +164,13 @@ AUTH_PROFILE_MODULE = 'users.MyUser'
 AUTH_USER_MODEL = 'users.MyUser'
 
 DEFAULT_PREFIX_CHATOWNER_NAME = 'user'
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
+
+FRONTEND_RESET_PASSWORD_URL = 'http://127.0.0.1:5173/reset/'

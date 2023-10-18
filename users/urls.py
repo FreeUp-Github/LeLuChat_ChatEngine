@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from .views import RegistrationView, LoginView, LogoutView,ChangePasswordView, UserListView
 from rest_framework_simplejwt import views as jwt_views
 
