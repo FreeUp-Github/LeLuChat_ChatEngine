@@ -85,9 +85,17 @@ class ChatListSerializer(serializers.ModelSerializer):
 class SenderObjectRelatedField(serializers.RelatedField):
     def to_representation(self, value):
         if isinstance(value, ChatOwner):
-            return value.name
+            ret = {
+                'type': 'website_client',
+                'identity': value.name
+            }
+            return ret
         elif isinstance(value, MyUser):
-            return value.email
+            ret = {
+                'type': 'leluchat_user',
+                'identity': value.email
+            }
+            return ret
         raise Exception('Unexpected type of tagged object')
 
 class MessageSerializer(serializers.ModelSerializer):
