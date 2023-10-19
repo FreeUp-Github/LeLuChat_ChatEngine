@@ -89,7 +89,11 @@ class ChatConsumer(WebsocketConsumer):
                     self.close()
             elif self.chat_group_name and text_data_json["type"] == "chat_message":
                 # Send message to room group
-                return_dict = {**text_data_json}
+                message_info = dict()
+                message = self._save_message({**text_data_json})
+                message_info['message_data'] = MessageSerializer(instance=message).data
+                message_info['type'] = 'send_to_all'
+                return_dict = {**message_info}
                 async_to_sync(self.channel_layer.group_send)(
                     self.chat_group_name,
                     return_dict,
@@ -110,16 +114,12 @@ class ChatConsumer(WebsocketConsumer):
                 'message': "You are not authenticated"
             }))
 
-    # Receive message from room group
-    def chat_message(self, event):
-        text_data_json = event.copy()
-        text_data_json.pop("type")
+    def _save_message(self, text_data_json):
         message, attachment = (
             text_data_json["message"],
             text_data_json.get("attachment"),
         )
 
-        # Attachment
         if attachment:
             file_str, file_ext = attachment["data"], attachment["format"]
 
@@ -138,10 +138,14 @@ class ChatConsumer(WebsocketConsumer):
                 chat=self.chat,
                 sender_object=self.user
             )
-        serializer = MessageSerializer(instance=_message)
+        return _message
+
+    # Receive message from room group
+    def send_to_all(self, event):
+        text_data_json = event.copy()
         # Send message to WebSocket
         self.send(
             text_data=json.dumps(
-                serializer.data
+                text_data_json['message_data']
             )
         )
