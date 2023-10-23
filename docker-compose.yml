@@ -28,7 +28,8 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - EMAIL_HOST_USER=amari.enterprize@gmail.com
-      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
+    env_file:
+      - web-variables.env
     depends_on:
       - db
       - redis
