@@ -1,3 +1,7 @@
+secrets:
+  web-certificate:
+    file: stunnel/stunnel.pem
+
 services:
   db:
     image: postgres
@@ -18,11 +22,12 @@ services:
       - './redisdata:/data'
   web:
     image: freeuphub/leluchat_chatengine:latest
-    command: python manage.py runserver 0.0.0.0:8000
+    command: bash runserver
     volumes:
       - .:/code
     ports:
       - "8000:8000"
+      - "8443:8443"
     environment:
       - POSTGRES_NAME=postgres
       - POSTGRES_USER=postgres
@@ -30,6 +35,8 @@ services:
       - EMAIL_HOST_USER=amari.enterprize@gmail.com
     env_file:
       - web-variables.env
+    secrets:
+      - web-certificate
     depends_on:
       - db
       - redis
