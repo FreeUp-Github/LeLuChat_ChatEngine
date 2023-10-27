@@ -44,8 +44,16 @@ INSTALLED_APPS = [
     "corsheaders",
     'users.apps.UsersConfig',
     'chat',
-    'django_rest_passwordreset'
+    'django_rest_passwordreset',
+    'drf_yasg'
 ]
+
+SWAGGER_SETTINGS = {
+    "SECURITY_DEFINITIONS": {
+    "Token": {"type": "apiKey", "name": "Authorization", "in": "header"},
+    "Basic": {"type": "basic"},
+    }
+}
 
 ASGI_APPLICATION = "LeLuChat_ChatEngine.asgi.application"
 

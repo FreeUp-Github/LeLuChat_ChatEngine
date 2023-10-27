@@ -127,3 +127,5 @@ dmypy.json
 # Files for database
 data/
 redisdata/
+
+stunnel.pem

@@ -8,3 +8,4 @@ channels[daphne]
 channels_redis
 django-cors-headers
 django-rest-passwordreset
+drf-yasg
