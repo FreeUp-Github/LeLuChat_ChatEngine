@@ -84,7 +84,7 @@ class ChatOwnerManager(models.Manager):
         return chatowner
 
 class ChatOwner(models.Model):
-    name = models.CharField(max_length=200, unique=True, blank=False)
+    name = models.CharField(max_length=200, blank=False)
     is_active = models.BooleanField(default=True)
 
     @property
