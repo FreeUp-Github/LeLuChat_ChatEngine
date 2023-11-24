@@ -45,7 +45,8 @@ INSTALLED_APPS = [
     'users.apps.UsersConfig',
     'chat',
     'django_rest_passwordreset',
-    'drf_yasg'
+    'drf_yasg',
+    'django_celery_results'
 ]
 
 SWAGGER_SETTINGS = {
@@ -182,3 +183,6 @@ EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
 
 FRONTEND_RESET_PASSWORD_URL = 'http://127.0.0.1:5173/reset/'
+
+CELERY_RESULT_BACKEND = "django-db"
+CELERY_BROKER_URL = "redis://redis:6379/0"

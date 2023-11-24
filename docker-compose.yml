@@ -21,7 +21,7 @@ services:
     volumes:
       - './redisdata:/data'
   web:
-    image: freeuphub/leluchat_chatengine:latest
+    build: .
     command: bash runserver
     volumes:
       - .:/code
@@ -32,11 +32,23 @@ services:
       - POSTGRES_NAME=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - EMAIL_HOST_USER=amari.enterprize@gmail.com
-    env_file:
-      - web-variables.env
     secrets:
       - web-certificate
     depends_on:
       - db
+      - redis
+  celery:
+    build: .
+    command: celery -A LeLuChat_ChatEngine worker -l INFO
+    volumes:
+      - .:/code
+    environment:
+      - POSTGRES_NAME=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - EMAIL_HOST_USER=amari.enterprize@gmail.com
+    env_file:
+      - web-variables.env
+    depends_on:
+      - web
       - redis
